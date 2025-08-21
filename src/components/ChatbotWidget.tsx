@@ -35,7 +35,7 @@ const ChatbotWidget = () => {
   useEffect(() => {
     if (isScriptLoaded && window.ChatEngineSdk && isOpen && !chatEngine) {
       const ChatEngine = window.ChatEngineSdk.default;
-      const AGENT_ID = "0d217dc5-5bbd-4f52-9615-9487f2b1f085";
+      const AGENT_ID = "dd6b9514-0b43-482a-b1c6-5642f7cb3d87";
       
       const chat = new ChatEngine({
         agentId: AGENT_ID,
