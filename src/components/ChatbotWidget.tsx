@@ -1,47 +1,86 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { MessageCircle, X } from 'lucide-react';
 
+declare global {
+  interface Window {
+    ChatEngineSdk?: {
+      default: any;
+    };
+  }
+}
+
 const ChatbotWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const chatInstanceRef = useRef<any>(null);
 
-  const chatbotHTML = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Chatbot</title>
-      <style>
-        body {
-          margin: 0;
-          padding: 0;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-          height: 100vh;
-          overflow: hidden;
-        }
-      </style>
-    </head>
-    <body>
-      <script type="text/javascript" src="https://pub-66ae6320517c49c5ada5ed55c7561fda.r2.dev/prod-widget.js"></script>
-      <script type="text/javascript">
-        window.onload = function () {
-          const ChatEngine = window.ChatEngineSdk.default;
-          const AGENT_ID = "dd6b9514-0b43-482a-b1c6-5642f7cb3d87";
-          const chat = new ChatEngine({
-            agentId: AGENT_ID,
-            outboundAgentId: AGENT_ID,
-          });
+  const loadChatScript = () => {
+    return new Promise((resolve, reject) => {
+      if (window.ChatEngineSdk) {
+        resolve(window.ChatEngineSdk);
+        return;
+      }
 
-          chat.start();
-        };
-      </script>
-    </body>
-    </html>
-  `;
+      const script = document.createElement('script');
+      script.src = 'https://pub-66ae6320517c49c5ada5ed55c7561fda.r2.dev/prod-widget.js';
+      script.onload = () => resolve(window.ChatEngineSdk);
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
+  };
 
-  const iframeSrc = `data:text/html;charset=utf-8,${encodeURIComponent(chatbotHTML)}`;
+  const initializeChat = async () => {
+    if (!chatContainerRef.current || chatInstanceRef.current) return;
+
+    try {
+      setIsLoading(true);
+      await loadChatScript();
+
+      if (window.ChatEngineSdk) {
+        const ChatEngine = window.ChatEngineSdk.default;
+        const AGENT_ID = "dd6b9514-0b43-482a-b1c6-5642f7cb3d87";
+        
+        // Clear the container first
+        chatContainerRef.current.innerHTML = '';
+        
+        const chat = new ChatEngine({
+          agentId: AGENT_ID,
+          outboundAgentId: AGENT_ID,
+        });
+
+        chatInstanceRef.current = chat;
+        chat.start();
+      }
+    } catch (error) {
+      console.error('Failed to load chat widget:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      initializeChat();
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    if (chatInstanceRef.current) {
+      try {
+        chatInstanceRef.current.destroy?.();
+      } catch (error) {
+        console.error('Error destroying chat instance:', error);
+      }
+      chatInstanceRef.current = null;
+    }
+    if (chatContainerRef.current) {
+      chatContainerRef.current.innerHTML = '';
+    }
+  };
 
   return (
     <>
@@ -66,18 +105,22 @@ const ChatbotWidget = () => {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsOpen(false)}
+              onClick={handleClose}
               className="h-6 w-6"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex-1 overflow-hidden">
-            {isOpen && (
-              <iframe
-                src={iframeSrc}
-                className="w-full h-full border-0"
-                title="Chat Support"
+          <div className="flex-1 overflow-hidden relative">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-sm text-muted-foreground">Loading chat...</div>
+              </div>
+            ) : (
+              <div 
+                ref={chatContainerRef} 
+                className="h-full w-full"
+                style={{ minHeight: '500px' }}
               />
             )}
           </div>
