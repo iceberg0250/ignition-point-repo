@@ -34,16 +34,20 @@ const ChatbotWidget = () => {
 
   useEffect(() => {
     if (isScriptLoaded && window.ChatEngineSdk && isOpen && !chatEngine) {
-      const ChatEngine = window.ChatEngineSdk.default;
-      const AGENT_ID = "dd6b9514-0b43-482a-b1c6-5642f7cb3d87";
-      
-      const chat = new ChatEngine({
-        agentId: AGENT_ID,
-        outboundAgentId: AGENT_ID,
-      });
+      const chatContainer = document.getElementById('chat-container');
+      if (chatContainer) {
+        const ChatEngine = window.ChatEngineSdk.default;
+        const AGENT_ID = "dd6b9514-0b43-482a-b1c6-5642f7cb3d87";
+        
+        const chat = new ChatEngine({
+          agentId: AGENT_ID,
+          outboundAgentId: AGENT_ID,
+          container: chatContainer, // Try to contain it in the specific container
+        });
 
-      setChatEngine(chat);
-      chat.start();
+        setChatEngine(chat);
+        chat.start();
+      }
     }
   }, [isScriptLoaded, isOpen, chatEngine]);
 
@@ -80,10 +84,12 @@ const ChatbotWidget = () => {
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex-1 overflow-hidden" id="chat-container">
-            {isOpen && isScriptLoaded && (
-              <div className="h-full w-full" />
-            )}
+          <div className="flex-1 overflow-hidden relative">
+            <div id="chat-container" className="h-full w-full absolute inset-0">
+              {isOpen && isScriptLoaded && (
+                <div className="h-full w-full" />
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
