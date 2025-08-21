@@ -1,63 +1,47 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { MessageCircle, X } from 'lucide-react';
-
-declare global {
-  interface Window {
-    ChatEngineSdk?: {
-      default: any;
-    };
-  }
-}
 
 const ChatbotWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [isScriptLoaded, setIsScriptLoaded] = useState(false);
-  const [chatEngine, setChatEngine] = useState<any>(null);
 
-  useEffect(() => {
-    // Load the ChatEngine script
-    const script = document.createElement('script');
-    script.type = 'text/javascript';
-    script.src = 'https://pub-66ae6320517c49c5ada5ed55c7561fda.r2.dev/prod-widget.js';
-    script.onload = () => {
-      setIsScriptLoaded(true);
-    };
-    document.head.appendChild(script);
+  const chatbotHTML = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Chatbot</title>
+      <style>
+        body {
+          margin: 0;
+          padding: 0;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+          height: 100vh;
+          overflow: hidden;
+        }
+      </style>
+    </head>
+    <body>
+      <script type="text/javascript" src="https://pub-66ae6320517c49c5ada5ed55c7561fda.r2.dev/prod-widget.js"></script>
+      <script type="text/javascript">
+        window.onload = function () {
+          const ChatEngine = window.ChatEngineSdk.default;
+          const AGENT_ID = "dd6b9514-0b43-482a-b1c6-5642f7cb3d87";
+          const chat = new ChatEngine({
+            agentId: AGENT_ID,
+            outboundAgentId: AGENT_ID,
+          });
 
-    return () => {
-      // Cleanup script when component unmounts
-      document.head.removeChild(script);
-    };
-  }, []);
+          chat.start();
+        };
+      </script>
+    </body>
+    </html>
+  `;
 
-  useEffect(() => {
-    if (isScriptLoaded && window.ChatEngineSdk && isOpen && !chatEngine) {
-      const chatContainer = document.getElementById('chat-container');
-      if (chatContainer) {
-        const ChatEngine = window.ChatEngineSdk.default;
-        const AGENT_ID = "dd6b9514-0b43-482a-b1c6-5642f7cb3d87";
-        
-        const chat = new ChatEngine({
-          agentId: AGENT_ID,
-          outboundAgentId: AGENT_ID,
-          container: chatContainer, // Try to contain it in the specific container
-        });
-
-        setChatEngine(chat);
-        chat.start();
-      }
-    }
-  }, [isScriptLoaded, isOpen, chatEngine]);
-
-  const handleClose = () => {
-    setIsOpen(false);
-    if (chatEngine) {
-      // Clean up the chat instance if needed
-      setChatEngine(null);
-    }
-  };
+  const iframeSrc = `data:text/html;charset=utf-8,${encodeURIComponent(chatbotHTML)}`;
 
   return (
     <>
@@ -73,23 +57,29 @@ const ChatbotWidget = () => {
       {/* Chat Modal */}
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-md w-full h-[600px] p-0 gap-0">
+          <DialogTitle className="hidden">Chat Support</DialogTitle>
+          <DialogDescription className="hidden">
+            Chat with our support agent
+          </DialogDescription>
           <div className="flex items-center justify-between p-4 border-b">
             <h3 className="text-lg font-semibold">Chat Support</h3>
             <Button
               variant="ghost"
               size="icon"
-              onClick={handleClose}
+              onClick={() => setIsOpen(false)}
               className="h-6 w-6"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex-1 overflow-hidden relative">
-            <div id="chat-container" className="h-full w-full absolute inset-0">
-              {isOpen && isScriptLoaded && (
-                <div className="h-full w-full" />
-              )}
-            </div>
+          <div className="flex-1 overflow-hidden">
+            {isOpen && (
+              <iframe
+                src={iframeSrc}
+                className="w-full h-full border-0"
+                title="Chat Support"
+              />
+            )}
           </div>
         </DialogContent>
       </Dialog>
